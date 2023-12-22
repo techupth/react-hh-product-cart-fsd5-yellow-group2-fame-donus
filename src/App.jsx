@@ -1,39 +1,77 @@
 import "./App.css";
 import products from "./data/products.js";
 import { useState } from "react";
-function App() {
-  const addKeyInProduct = products.map((items) => {
-    return { ...items, qty: 0, eachTotal: 0 };
-  });
-  const [allProducts, setAllProducts] = useState(addKeyInProduct);
-  const [inCart, setInCart] = useState([]);
 
-  function handleAddtocart(product, index) {
-    if (product.qty == 0) {
-      product.qty += 1;
-      product.eachTotal = product.qty * product.price;
-      const updateInCart = [...inCart, product];
-      setInCart(updateInCart);
-    } else {
-      product.qty += 1;
-      product.eachTotal = product.qty * product.price;
-      const updateInCart = [...inCart];
-      setInCart(updateInCart);
+function App() {
+  const initialProducts = products.map((product) => {
+    return { ...product, quantity: 0, total: 0 };
+  });
+
+  const allProducts = initialProducts;
+  const [cartItems, setCartItems] = useState([]);
+
+  function handleManageProductInCart(product, action) {
+    if (action === "add") {
+      if (
+        cartItems.filter((cartItem) => cartItem.id === product.id).length === 0
+      ) {
+        const updatedQuantity = product.quantity + 1;
+        const updatedTotal = updatedQuantity * product.price;
+        const productToAdd = {
+          ...product,
+          quantity: updatedQuantity,
+          total: updatedTotal,
+        };
+        const updatedCart = [...cartItems, productToAdd];
+        setCartItems(updatedCart);
+      } else {
+        const existingCartItem = cartItems.find(
+          (cartItem) => cartItem.id === product.id
+        );
+        const updatedQuantity = existingCartItem.quantity + 1;
+        const updatedTotal = updatedQuantity * product.price;
+        const updatedCart = cartItems.map((cartItem) =>
+          cartItem.id === product.id
+            ? {
+                ...cartItem,
+                quantity: updatedQuantity,
+                total: updatedTotal,
+              }
+            : cartItem
+        );
+        setCartItems(updatedCart);
+      }
+    } else if (action === "subtract") {
+      const existingCartItem = cartItems.find(
+        (cartItem) => cartItem.id === product.id
+      );
+      const updatedQuantity = existingCartItem.quantity - 1;
+      const updatedTotal = updatedQuantity * product.price;
+      const updatedCart = cartItems.map((cartItem) =>
+        cartItem.id === product.id
+          ? { ...cartItem, quantity: updatedQuantity, total: updatedTotal }
+          : cartItem
+      );
+      setCartItems(updatedCart);
     }
-    console.log(product);
-    console.log(inCart);
   }
+
   function handleClose(item, index) {
-    item.qty = 0;
-    item.eachTotal = item.qty * item.price;
-    const updateCart = [...inCart];
-    updateCart.splice(index, 1);
-    setInCart(updateCart);
+    const updatedQuantity = 0;
+    const updatedTotal = updatedQuantity * item.price;
+    const updatedCartItem = cartItems.map((cartItem) =>
+      cartItem.id === item.id
+        ? { ...cartItem, quantity: updatedQuantity, total: updatedTotal }
+        : cartItem
+    );
+    setCartItems(updatedCartItem);
+    const updatedCart = [...cartItems];
+    updatedCart.splice(index, 1);
+    setCartItems(updatedCart);
   }
-  function calTotalPrice() {
-    return inCart.reduce((acc, curr) => {
-      return acc + curr.eachTotal;
-    }, 0);
+
+  function calculateTotalPrice() {
+    return cartItems.reduce((acc, curr) => acc + curr.total, 0);
   }
 
   return (
@@ -47,74 +85,64 @@ function App() {
             justifyContent: "center",
           }}
         >
-          {allProducts.map((product) => {
-            return (
-              <div className="product-list">
-                <div className="product">
-                  <img src={product.image} alt="sample name" />
-                  <h2>{product.name}</h2>
-                  <p>{product.description}</p>
-                  <button
-                    onClick={() => {
-                      handleAddtocart(product);
-                    }}
-                  >
-                    Add to cart
-                  </button>
-                </div>
+          {allProducts.map((product, index) => (
+            <div className="product-list" key={index}>
+              <div className="product">
+                <img src={product.image} alt="sample name" />
+                <h2>{product.name}</h2>
+                <p>{product.description}</p>
+                <button
+                  onClick={() => {
+                    handleManageProductInCart(product, "add");
+                  }}
+                >
+                  Add to cart
+                </button>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </section>
       <hr />
 
       <section className="cart">
         <h1 className="cart-heading">
-          Cart (Total Price is {calTotalPrice()} Baht)
+          Cart (Total Price is {calculateTotalPrice()} Baht)
         </h1>
         <div className="cart-item-list">
-          {inCart.map((item, index) => {
-            return (
-              <div className="cart-item" key={index}>
-                <h1>Item name: {item.name}</h1>
-                <h2>Price: {item.price} Baht</h2>
-                <h2>Quantity:{item.qty}</h2>
+          {cartItems.map((item, index) => (
+            <div className="cart-item" key={index}>
+              <h1>Item name: {item.name}</h1>
+              <h2>Price: {item.price} Baht</h2>
+              <h2>Quantity:{item.quantity}</h2>
+              <button
+                className="delete-button"
+                onClick={() => {
+                  handleClose(item, index);
+                }}
+              >
+                x
+              </button>
+              <div className="quantity-actions">
                 <button
-                  className="delete-button"
+                  className="add-quantity"
                   onClick={() => {
-                    handleClose(item, index);
+                    handleManageProductInCart(item, "add");
                   }}
                 >
-                  x
+                  +
                 </button>
-                <div className="quantity-actions">
-                  <button
-                    className="add-quantity"
-                    onClick={() => {
-                      item.qty += 1;
-                      item.eachTotal = item.qty * item.price;
-                      const updateInCart = [...inCart];
-                      setInCart(updateInCart);
-                    }}
-                  >
-                    +
-                  </button>
-                  <button
-                    className="subtract-quantity"
-                    onClick={() => {
-                      item.qty -= 1;
-                      item.eachTotal = item.qty * item.price;
-                      const updateInCart = [...inCart];
-                      setInCart(updateInCart);
-                    }}
-                  >
-                    -
-                  </button>
-                </div>
+                <button
+                  className="subtract-quantity"
+                  onClick={() => {
+                    handleManageProductInCart(item, "subtract");
+                  }}
+                >
+                  -
+                </button>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </section>
     </div>
